@@ -1,0 +1,3 @@
+grant codeBase "C:\Users\gilbe\Documents\7mo Semestre\Riogas\RMI" {
+    permission java.io.FilePermission "backup.ser", "read, write";
+};
