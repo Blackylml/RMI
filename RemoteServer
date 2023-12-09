@@ -1,0 +1,88 @@
+import java.rmi.Remote;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
+import java.io.*;
+import java.util.Timer;
+import java.util.TimerTask;
+
+
+// Interfaz remota
+interface RemoteInterface extends Remote {
+    MyObject getSerializableObject() throws RemoteException;
+}
+
+// Clase serializable
+class MyObject implements Serializable {
+    private static final long serialVersionUID = 1L;
+    private String data;
+
+    public MyObject(String data) {
+        this.data = data;
+    }
+
+    public String getData() {
+        return data;
+    }
+}
+
+// Implementación del servidor
+public class RemoteServer implements RemoteInterface {
+    private MyObject serializableObject;
+
+    public RemoteServer() {
+        // Cargar el objeto desde el respaldo si existe
+        this.serializableObject = loadBackup();
+    }
+
+    public MyObject getSerializableObject() throws RemoteException {
+        return serializableObject;
+    }
+
+    // Método para guardar un respaldo del objeto
+    private void saveBackup() {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("backup.ser"))) {
+            oos.writeObject(serializableObject);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // Método para cargar el objeto desde el respaldo
+    private MyObject loadBackup() {
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream("backup.ser"))) {
+            return (MyObject) ois.readObject();
+        } catch (FileNotFoundException e) {
+            // No hay respaldo, crear un nuevo objeto
+            return new MyObject("Objeto inicial desde el servidor");
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public static void main(String[] args) {
+        try {
+            RemoteServer obj = new RemoteServer();
+            RemoteInterface stub = (RemoteInterface) UnicastRemoteObject.exportObject(obj, 0);
+
+            Registry registry = LocateRegistry.createRegistry(1099);
+            registry.bind("RemoteInterface", stub);
+
+            System.out.println("Servidor RMI listo");
+
+            // Programar la generación automática de respaldos cada cierto tiempo
+            Timer timer = new Timer();
+            timer.scheduleAtFixedRate(new TimerTask() {
+                @Override
+                public void run() {
+                    obj.saveBackup();
+                }
+            }, 0, 60000); // Guardar cada 60 segundos (ajusta según tus necesidades)
+        } catch (Exception e) {
+            System.err.println("Error en el servidor RMI: " + e.toString());
+            e.printStackTrace();
+        }
+    }
+}
