@@ -1,0 +1,29 @@
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+
+// Interfaz remota
+interface RemoteInterface extends java.rmi.Remote {
+    MyObject getSerializableObject() throws java.rmi.RemoteException;
+}
+
+// Clase principal del cliente
+public class RemoteClient {
+    public static void main(String[] args) {
+        try {
+            // Localizar el registro RMI en el servidor
+            Registry registry = LocateRegistry.getRegistry("localhost", 1099);
+
+            // Buscar el objeto remoto por su nombre ("RemoteInterface")
+            RemoteInterface stub = (RemoteInterface) registry.lookup("RemoteInterface");
+
+            // Invocar el método remoto para obtener el objeto serializable
+            MyObject serializableObject = stub.getSerializableObject();
+
+            // Imprimir datos del objeto recibido desde el servidor
+            System.out.println("Datos del objeto serializable recibido desde el servidor: " + serializableObject.getData());
+        } catch (Exception e) {
+            System.err.println("Error en el cliente RMI: " + e.toString());
+            e.printStackTrace();
+        }
+    }
+}
